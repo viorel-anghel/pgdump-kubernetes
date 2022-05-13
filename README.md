@@ -10,9 +10,9 @@ If you just want to use this, skip to the section "Using the Helm chart". If you
 
 ## The pgdump.sh script
 
-This is a simple shell script based on `pg_dump` which is creating dumps for each database. 
+This is a simple shell script based on `pg_dump` which is creating a sql dump for a database. 
 
-A few notes on  how this may be different from other scripts founf on the net:
+A few notes on  how this may be different from other scripts found on the net:
 - using `pg_dump` (not `pg_dumpall`) and dumping each db in it's own file, see the `while` loop
 - carefully checking for errors
 - using environment variables `PGHOST PGPORT PGUSER PGPASSWORD` to simplify psql/pg_dump commands (see https://www.postgresql.org/docs/current/libpq-envars.html) and to be docker/kubernetes ready
@@ -40,12 +40,12 @@ kubectl create ns pg-helm
 helm install -n pg-helm --set auth.postgresPassword='p123456' mypg bitnami/postgresql
 ```
 
-As you can see in the instructions displayed by the helm command, you cand access the postgres server using the service `mypg-postgresql` (`mypg-postgresql.pg-helm` from other namespaces), with user postgres and the password stored in the secret `mypg-postgresql`:
+As you can see in the instructions displayed by the helm command, you can access the postgres server using the service `mypg-postgresql` (`mypg-postgresql.pg-helm` from other namespaces), with user postgres and the password stored in the secret `mypg-postgresql`:
 
 ```
 kubectl -n pg-helm get services
 kubectl -n pg-helm get secrets
-kubectl get secret --namespace pg-helm mypg-postgresql -o jsonpath="{.data.postgres-password}" | base64 --decode
+kubectl get secret --namespace pg-helm mypg-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d
 ```
 
 If you uninstall the helm chart, the PVC won't be deleted, as a safety for you. If you re-install it, the old PVC and postgres data will be used. 
@@ -92,7 +92,7 @@ Moving into `helm` directory, the file `Chart.yaml` is basically a description o
 
 In the file `values.yaml` are the variables which can be changed at install and their default value. The namespace is not here, this and the release name will de defined in the command line.
 
-Inside the directory `templates` you will find our three resources yml files, but slightly changed or shall I say parametrized. Everywhere you see `{{ Something }}` that is a placeholder which will be replaced during helm install. `{{ .Values.something }}` will be taken from the `values.yaml` file. Then, `{{ .Release.Name }}` and `{{ .Release.Namespace }}` are values which will be defined in the 'helm install' command.
+Inside the directory `templates` you will find our three resources yml files, but slightly changed or shall I say parametrized. Everywhere you see `{{ Something }}` that is a placeholder which will be replaced during helm install. `{{ .Values.something }}` will be taken from the `values.yaml` file. Then, `{{ .Release.Name }}` and `{{ .Release.Namespace }}` are values which will be defined in the `helm install` command.
 
 `Notes.txt` is the text displayed at the end of helm install, some sort of usage information.
 
@@ -105,11 +105,11 @@ cd helm
 helm upgrade --install -f values.yaml -f values_override.yaml -n <NAMESPACE> <RELEASE-NAME> . 
 ```
 
-We recommend you use a release name like <SOMETHING>-pgdump. All the resources created by the helm chart will have this name: a PVC, a deployment and a cronjob.
+We recommend you use a release name like `<SOMETHING>-pgdump`. All the resources created by the helm chart will have this name: a PVC, a deployment and a cronjob.
 
 Make sure you have the correct values, especially for 
 - `pghost` - this should be the name of the service (svc) pointing to the postgres database and
-- `secret_pgpass` - this should be †he name of the secret holding the postgres password.
+- `secret_pgpass` - this should be the name of the secret holding the postgres password.
 
 ## Multi-Attach error for volume
 
@@ -119,18 +119,20 @@ While testing the helm chart I have encountered this error, in the pod spawned b
 kubectl -n cango-web describe pod [...]
 [...]
  Warning  FailedAttachVolume  67s   attachdetach-controller  Multi-Attach error for volume "..." Volume is already used by pod(s) [...]
-Warning  FailedMount         3m44s  kubelet                  Unable to attach or mount volumes: unmounted volumes=[data], unattached volumes=[data kube-api-access-...]: timed out waiting for the condition
+ Warning  FailedMount         3m44s  kubelet                  Unable to attach or mount volumes: unmounted volumes=[data], unattached volumes=[data kube-api-access-...]: timed out waiting for the condition
 ```
 
-The problem is that we are mounting the same volume in the pod created by the deplyment and also in the pod created bu the cronjob and the access mode is `ReadWriteOnce`. You will see this only when those pods are on different nodes since the ReadWriteOnce acces mode means the volume can be mounted only once per node (not per pod).
+The problem is that we are mounting the same volume in the pod created by the deplyment and also in the pod created by the cronjob and the access mode is `ReadWriteOnce`. You will see this only when those pods are on different nodes since the ReadWriteOnce acces mode means the volume can be mounted only once per node.
 
 One simple solutions will be to use `ReadWriteMany` but this is not supported by some storage classes, like DigitalOcean for example. Another way will be to give up the deployment pod which is really useful only when you want to do a database restore or for testing, debugging, verifying.
 
-Yet another solution will be to force the cronjob pods to be spawned on the same node as the deployment pod. For this we can use inter-pod affinity, as shown in the section `affinity` from the file `helm/template/cronjob.yml`.
+Yet another solution will be to force the cronjob pods to be spawned on the same node as the deployment pod. This is using the fact that RWO means once per node (not ince per pod!). Thus we can use inter-pod affinity, as shown in the section `affinity` from the file `helm/template/cronjob.yml`. 
 
 
 ## Improvments TBD 
 
 - use volumemount when reading secret password in deployment to cope with the situation when postgres password changes (env variables are not re-read on the fly)
 - storageclass in helm chart
+- resource limits
+
 
