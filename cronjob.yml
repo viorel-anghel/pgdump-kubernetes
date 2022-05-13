@@ -10,6 +10,18 @@ spec:
       template:
         spec:
           restartPolicy: Never
+
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - mypg-pgdump
+                topologyKey: "kubernetes.io/hostname"
+                
           volumes:
             - name: data
               persistentVolumeClaim:

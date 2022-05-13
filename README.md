@@ -111,6 +111,24 @@ Make sure you have the correct values, especially for
 - `pghost` - this should be the name of the service (svc) pointing to the postgres database and
 - `secret_pgpass` - this should be †he name of the secret holding the postgres password.
 
+## Multi-Attach error for volume
+
+While testing the helm chart I have encountered this error, in the pod spawned by the cronjob. The pod is stuck in 'Init:0/1' state and the events show:
+
+```
+kubectl -n cango-web describe pod [...]
+[...]
+ Warning  FailedAttachVolume  67s   attachdetach-controller  Multi-Attach error for volume "..." Volume is already used by pod(s) [...]
+Warning  FailedMount         3m44s  kubelet                  Unable to attach or mount volumes: unmounted volumes=[data], unattached volumes=[data kube-api-access-...]: timed out waiting for the condition
+```
+
+The problem is that we are mounting the same volume in the pod created by the deplyment and also in the pod created bu the cronjob and the access mode is `ReadWriteOnce`. You will see this only when those pods are on different nodes since the ReadWriteOnce acces mode means the volume can be mounted only once per node (not per pod).
+
+One simple solutions will be to use `ReadWriteMany` but this is not supported by some storage classes, like DigitalOcean for example. Another way will be to give up the deployment pod which is really useful only when you want to do a database restore or for testing, debugging, verifying.
+
+Yet another solution will be to force the cronjob pods to be spawned on the same node as the deployment pod. For this we can use inter-pod affinity, as shown in the section `affinity` from the file `helm/template/cronjob.yml`.
+
+
 ## Improvments TBD 
 
 - use volumemount when reading secret password in deployment to cope with the situation when postgres password changes (env variables are not re-read on the fly)

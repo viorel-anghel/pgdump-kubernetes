@@ -1,6 +1,6 @@
 # default values for helm. yaml formatted
 
-schedule: '55 * * * *'
+schedule: '10 * * * *'
 
 image:
   repository: vvang/pgdump
@@ -8,10 +8,10 @@ image:
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
-pghost: acid-minimal-cluster
+pghost: acid-cango
 pgport: 5432
 pguser: postgres
-secret_pgpass: postgres.acid-minimal-cluster.credentials.postgresql.acid.zalan.do
+secret_pgpass: postgres.acid-cango.credentials.postgresql.acid.zalan.do
 secret_key: password
 
 storage:
