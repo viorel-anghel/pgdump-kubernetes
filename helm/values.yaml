@@ -1,0 +1,17 @@
+# default values for helm. taml formatted
+
+image:
+  repository: vvang/pgdump
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+pghost: mypg-postgresql
+pgport: 5432
+pguser: postgres
+secret_pgpass: mypg-postgresql
+secret_key: postgres-password
+
+storage:
+  size: 1Gi
+

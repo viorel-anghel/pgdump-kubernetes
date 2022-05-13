@@ -1,0 +1,50 @@
+kind: CronJob
+apiVersion: batch/v1beta1
+metadata:
+  name: pgdump
+  namespace: pg-helm
+spec:
+  schedule: "58 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: pgdump
+
+          initContainers:
+              - name: chmod
+                image: alpine:3
+                command: 
+                  - /bin/sh
+                  - -c
+                  - 'chmod 770 /data; chown 1001 /data'
+                volumeMounts:
+                  - name: data
+                    mountPath: /data
+
+          containers:
+            - name: pgdump
+              image: vvang/pgdump:0.5
+              command: [ "/bin/bash", "/pgdump.sh" ]
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+              env:
+                - name: WORKDIR
+                  value: /data
+                - name: PGHOST
+                  value: mypg-postgresql
+                - name: PGPORT
+                  value: '5432'
+                - name: PGUSER
+                  value: postgres
+                - name: PGPASSWORD
+                  valueFrom: 
+                    secretKeyRef:
+                      name: mypg-postgresql
+                      key: postgres-password
+

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgdump
+  namespace: pg-helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgdump
+  template:
+    metadata:
+      labels:
+        app: pgdump
+    spec:
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: pgdump
+
+      initContainers:
+        - name: chmod
+          image: alpine:3
+          command: 
+            - /bin/sh
+            - -c
+            - 'chmod 770 /data; chown 1001 /data'
+          volumeMounts:
+            - name: data
+              mountPath: /data
+
+      containers:
+        - name: pgdump
+          image: vvang/pgdump:0.5
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          env:
+            - name: WORKDIR
+              value: /data
+            - name: PGHOST
+              value: mypg-postgresql
+            - name: PGPORT
+              value: '5432'
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              valueFrom: 
+                secretKeyRef:
+                  name: mypg-postgresql
+                  key: postgres-password
+
