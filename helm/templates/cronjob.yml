@@ -4,7 +4,7 @@ metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
 spec:
-  schedule: "58 * * * *"
+  schedule: {{ .Values.schedule | quote }}
   jobTemplate:
     spec:
       template:

@@ -4,7 +4,7 @@ metadata:
   name: pgdump
   namespace: pg-helm
 spec:
-  schedule: "58 * * * *"
+  schedule: "33 1 * * *"
   jobTemplate:
     spec:
       template:

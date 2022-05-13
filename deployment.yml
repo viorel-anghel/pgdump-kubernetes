@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pgdump
+  name: mypg-pgdump
   namespace: pg-helm
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: pgdump
+      app: mypg-pgdump
   template:
     metadata:
       labels:
-        app: pgdump
+        app: mypg-pgdump
     spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: pgdump
+            claimName: mypg-pgdump
 
       initContainers:
         - name: chmod

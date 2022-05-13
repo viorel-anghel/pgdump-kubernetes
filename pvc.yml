@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pgdump
+  name: mypg-pgdump
   namespace: pg-helm
 spec:
   accessModes:

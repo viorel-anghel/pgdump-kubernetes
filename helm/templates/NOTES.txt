@@ -1,1 +1,8 @@
 
+This will create 3 objects: PVC, deployment and cronjob all with the name {{ .Release.Name }} 
+in the namespace {{ .Release.Namespace }}.
+
+kubectl -n {{ .Release.Namespace }} get pods
+
+TBD: add more usage info.
+
