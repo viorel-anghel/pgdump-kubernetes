@@ -1,27 +1,28 @@
 
-
-# Warning: early release, may contain errors.
-
 # Postgres backups with pg_dump - from shell scripting to Kubernetes
 
-Clone the repository from https://github.com/viorel-anghel/pgdump-kubernetes.git 
+You may find all the files here: https://github.com/viorel-anghel/pgdump-kubernetes.git 
 
-If you just want to use this, skip to the section "Using the Helm chart". If you want to understand how this has been created, read on.
+## Why
+We are using Velero ( https://velero.io ) to do Kubernetes backups. But I feel a bit uneasy about the database backups and I have decided to also have some good old sql dumps for our Postgres databases. In VMs we have this for quite some time but for those running in Kubernetes we don't.
+
+If you want to understand how this has been created and brush up your Kubernetes knowledge, read on.
+
+If you just want to use this, skip to the section "Using the Helm chart". 
 
 ## The pgdump.sh script
 
-This is a simple shell script based on `pg_dump` which is creating a sql dump for a database. 
+This is a simple shell script based on `pg_dump` which is creating a sql dump for a database. Even if in Kubernetes is not so important, to be consistent with the style we are using in our VMs, we will dump each database in its own file. This means we are not using `pg_dumpall` but we loop over the list of dbs and dump each one with `pg_dump`.
 
 A few notes on  how this may be different from other scripts found on the net:
-- using `pg_dump` (not `pg_dumpall`) and dumping each db in it's own file, see the `while` loop
 - carefully checking for errors
-- using environment variables `PGHOST PGPORT PGUSER PGPASSWORD` to simplify psql/pg_dump commands (see https://www.postgresql.org/docs/current/libpq-envars.html) and to be docker/kubernetes ready
+- using environment variables `PGHOST PGPORT PGUSER PGPASSWORD` to simplify psql/pg_dump commands (see https://www.postgresql.org/docs/current/libpq-envars.html) and to be Docker/Kubernetes ready.
 
 ## The Docker image
 
-The `Dockerfile` for building the docker image is very simple, basically we start from `bitnami/postgres` image which already has all the postgresql tools, adding the pgdump.sh script. 
+The `Dockerfile` for building the docker image is very simple, basically we start from `bitnami/postgres` image which already has all the postgresql tools and adding the `pgdump.sh` script. 
 
-Setting a 'do nothing' `ENTRYPOINT` will be usefull in this case because you can start a container or pod from it, exec 'inside' it and test things.
+Setting a 'do nothing' `ENTRYPOINT` is usefull in this case because you can start a container or pod from it, exec 'inside' it and test things.
 
 Building and pushing (to docker hub vvang repository) the image steps:
 ```
@@ -48,16 +49,17 @@ kubectl -n pg-helm get secrets
 kubectl get secret --namespace pg-helm mypg-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d
 ```
 
-If you uninstall the helm chart, the PVC won't be deleted, as a safety for you. If you re-install it, the old PVC and postgres data will be used. 
+If you uninstall the helm chart, the PVC won't be deleted, as a safety measure for you. If you re-install it, the old PVC and postgres data will be used. 
 
 ## Kubernetes basic yamls
+
 I have decided to use dedicated volumes for dumps so first we'll need to create a PVC, see the file `pvc.yml`. 
 
-Then, we'll create a deployment (a simple pod will suffice) which can be used to test the dump script or to do restores. Looking at the file `deployment.yml`:
-- all the objects I'm creating (pvc, deployment, cronjob) will have the same name, in this case `mypg-pgdump`
+Then, we'll create a deployment (in fact, a simple pod will suffice) which can be used to test the dump script or to do restores. Looking at the file `deployment.yml`:
+- all the objects created (pvc, deployment, cronjob) will have the same name, in this case `mypg-pgdump`
 - using the volume created by PVC
-- the init container is used to fix some owner/permissions on the directory where the volume is mounted. this is necessary since the container is not running as root but as user 1001. On KIND, this directory has 777 permissions but on other clusters, after mount, the directory is owned by root with 755 mode.
-- then the main container, using environment variables to set everything and for the postgres password accessing the secret created by the helm above
+- the init container is used to fix some owner/permissions on the directory where the volume is mounted. this is necessary since the container is not running as root but as user 1001 (due to the inherited Docker image). On KIND, this directory has 777 permissions but on other clusters, after mount, the directory is owned by root with 755 mode.
+- the main container is using environment variables to set everything and for the postgres password is referencing the secret created by the helm above
 
 After you create the PVC and the deployment, you can test things:
 ```
@@ -78,7 +80,7 @@ If this is working. everything is ok and you can proceed with the cronjob. Other
 ## The cronjob
 Kubernetes has a dedicated object for cronjobs and this is pretty similar with a Deployment. Look at the file `cronjob.yml` where in the `spec` section you will recognize most of it. Only the `schedule` and `restartPolicy` are new. 
 
-The schedule syntax is the same as the standard Linux cron daemon (no surprise here). You may change the `schedule:` line to see some results faster.
+The schedule syntax is the same as the standard Unix cron daemon (no surprise here). You may change the `schedule:` line to see some results faster.
 
 ```
 kubectl apply -f cronjob.yml
@@ -86,11 +88,12 @@ kubectl get cj
 ```
 
 ## Creating the Helm chart
+
 If you wish, uou may use the three yml files for many situations. But you will neeed to make small changes for every case: the namespace, the resources name, environment values etc. To help with this, we'll create a helm chart and use it to install with different values (other options are `kustomize` os using `sed` to do inline search-and-replaces).
 
 Moving into `helm` directory, the file `Chart.yaml` is basically a description of the chart.
 
-In the file `values.yaml` are the variables which can be changed at install and their default value. The namespace is not here, this and the release name will de defined in the command line.
+In the file `values.yaml` are the variables which can be changed at install and their default value. The namespace is not here, this and the release name will de defined at install time in the command line.
 
 Inside the directory `templates` you will find our three resources yml files, but slightly changed or shall I say parametrized. Everywhere you see `{{ Something }}` that is a placeholder which will be replaced during helm install. `{{ .Values.something }}` will be taken from the `values.yaml` file. Then, `{{ .Release.Name }}` and `{{ .Release.Namespace }}` are values which will be defined in the `helm install` command.
 
@@ -113,7 +116,7 @@ Make sure you have the correct values, especially for
 
 ## Multi-Attach error for volume
 
-While testing the helm chart I have encountered this error, in the pod spawned by the cronjob. The pod is stuck in 'Init:0/1' state and the events show:
+While testing the helm chart I have encountered this error, in the pod created by the cronjob. The pod is stuck in 'Init:0/1' state and the events show:
 
 ```
 kubectl -n cango-web describe pod [...]
@@ -122,11 +125,11 @@ kubectl -n cango-web describe pod [...]
  Warning  FailedMount         3m44s  kubelet                  Unable to attach or mount volumes: unmounted volumes=[data], unattached volumes=[data kube-api-access-...]: timed out waiting for the condition
 ```
 
-The problem is that we are mounting the same volume in the pod created by the deplyment and also in the pod created by the cronjob and the access mode is `ReadWriteOnce`. You will see this only when those pods are on different nodes since the ReadWriteOnce acces mode means the volume can be mounted only once per node.
+The problem is that we are mounting the same volume in the pod created by the deployment and also in the pod created by the cronjob and the access mode is `ReadWriteOnce`. You will see this only when those pods are on different nodes since the ReadWriteOnce acces mode means the volume can be mounted only once per node.
 
 One simple solutions will be to use `ReadWriteMany` but this is not supported by some storage classes, like DigitalOcean for example. Another way will be to give up the deployment pod which is really useful only when you want to do a database restore or for testing, debugging, verifying.
 
-Yet another solution will be to force the cronjob pods to be spawned on the same node as the deployment pod. This is using the fact that RWO means once per node (not ince per pod!). Thus we can use inter-pod affinity, as shown in the section `affinity` from the file `helm/template/cronjob.yml`. 
+Yet another solution will be to force the cronjob pods to be created on the same node as the deployment pod. This is using the fact that RWO means once per node, not once per pod!. Thus we can use inter-pod affinity, as shown in the section `affinity` from the file `helm/template/cronjob.yml`. 
 
 
 ## Improvments TBD 
