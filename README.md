@@ -6,7 +6,7 @@ You may find all the files here: https://github.com/viorel-anghel/pgdump-kuberne
 ## Why
 We are using Velero ( https://velero.io ) to do Kubernetes backups. But I feel a bit uneasy about the database backups and I have decided to also have some good old sql dumps for our Postgres databases. In VMs we have this for quite some time but for those running in Kubernetes we don't.
 
-If you want to understand how this has been created and brush up your Kubernetes knowledge, read on.
+If you want to understand how this has been created and and learn some Kubernetes along me, read on.
 
 If you just want to use this, skip to the section "Using the Helm chart". 
 
@@ -24,11 +24,15 @@ The `Dockerfile` for building the docker image is very simple, basically we star
 
 Setting a 'do nothing' `ENTRYPOINT` is usefull in this case because you can start a container or pod from it, exec 'inside' it and test things.
 
-Building and pushing (to docker hub vvang repository) the image steps:
+Building, testing and pushing (to docker hub vvang repository) the image steps:
 ```
-docker build -t pgdump:0.5 .
-docker tag pgdump:0.5 vvang/pgdump:0.5
-docker push vvang/pgdump:0.5
+docker build -t pgdump:0.5 .        # build
+docker run -d -n pgdump pgdump:0.5  # run
+docker exec -ti pgdump bash         # enter in container
+    ls -la /                        # run stuff inside
+    exit
+docker tag pgdump:0.5 vvang/pgdump:0.5  # tag
+docker push vvang/pgdump:0.5            # push to docker hub
 ```
 
 ## Preparing the Kubernetes test environment
@@ -51,33 +55,35 @@ kubectl get secret --namespace pg-helm mypg-postgresql -o jsonpath="{.data.postg
 
 If you uninstall the helm chart, the PVC won't be deleted, as a safety measure for you. If you re-install it, the old PVC and postgres data will be used. 
 
-## Kubernetes basic yamls
+## Kubernetes pod
 
-I have decided to use dedicated volumes for dumps so first we'll need to create a PVC, see the file `pvc.yml`. 
+I created a simple pod plus a volume to test the script functionality. 
 
-Then, we'll create a deployment (in fact, a simple pod will suffice) which can be used to test the dump script or to do restores. Looking at the file `deployment.yml`:
-- all the objects created (pvc, deployment, cronjob) will have the same name, in this case `mypg-pgdump`
-- using the volume created by PVC
+Those are the files for this step: `pvc.yml`, `pod.yml`. Some notes on the pod:
+- is using the volume created by PVC
 - the init container is used to fix some owner/permissions on the directory where the volume is mounted. this is necessary since the container is not running as root but as user 1001 (due to the inherited Docker image). On KIND, this directory has 777 permissions but on other clusters, after mount, the directory is owned by root with 755 mode.
 - the main container is using environment variables to set everything and for the postgres password is referencing the secret created by the helm above
 
-After you create the PVC and the deployment, you can test things:
+I have repetead the container build and the pod creation and test many times until I was happy with the result:
+
 ```
 kubectl apply -f pvc.yaml 
-kubectl apply -f deployment.yml
+kubectl apply -f pod.yml
 kubectl -n pg-helm get pods
-
-# note the mypg-pgump-... name above and use it in the next command
-kubectl -n pg-helm exec -ti mypg-pgdump-6cdfc4c966-kq6j2 -- bash
+kubectl -n pg-helm exec -ti mypg-pgdump -- bash
     # now you are 'inside' the container
     /pgdump.sh     # this will run the backup
     ls -la /data   # this will show the dumps
     exit
 ```
+## Deployment and cronjob
 
-If this is working. everything is ok and you can proceed with the cronjob. Otherwise, you can use various debug commands inside the mypg-pgdump pod.
+The skeleton of the pod can now be used to create a deployment and a cronjob. Both are pretty simple once you have the pod tested and working. All the objects (pod, pvc, deployment, cronjob) will have the same name, in this case `mypg-pgdump`.
 
-## The cronjob
+For deployment, see the file `deployment.yml`. Starting from the second `spec:` is exactly the yaml from the pod.
+
+Apparently we would not need a deployment as long as we use `replicas: 1` but the advantage of the deployment over pod is Kubernetes will 'keep the pod alive', even if nodes in cluster are restarted or deleted. Also is easier to do version upgrades.
+
 Kubernetes has a dedicated object for cronjobs and this is pretty similar with a Deployment. Look at the file `cronjob.yml` where in the `spec` section you will recognize most of it. Only the `schedule` and `restartPolicy` are new. 
 
 The schedule syntax is the same as the standard Unix cron daemon (no surprise here). You may change the `schedule:` line to see some results faster.
@@ -89,9 +95,9 @@ kubectl get cj
 
 ## Creating the Helm chart
 
-If you wish, uou may use the three yml files for many situations. But you will neeed to make small changes for every case: the namespace, the resources name, environment values etc. To help with this, we'll create a helm chart and use it to install with different values (other options are `kustomize` os using `sed` to do inline search-and-replaces).
+If you wish, you may use those yml files for many situations. But you will neeed to make small changes for every case: the namespace, the resources name, the environment values etc. One of the popular solutions for this problem, in Kubernetes world, is Helm - the 'Kubernetes package manager'. Other options are `kustomize` os using `sed` to do inline search-and-replaces.
 
-Moving into `helm` directory, the file `Chart.yaml` is basically a description of the chart.
+So we'll create a helm chart and use it to install with different values. Moving into `helm` directory, the file `Chart.yaml` is basically a description of the chart.
 
 In the file `values.yaml` are the variables which can be changed at install and their default value. The namespace is not here, this and the release name will de defined at install time in the command line.
 
