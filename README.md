@@ -111,7 +111,7 @@ Most probably you will want to override at least the values for `pghost` and `se
 
 ```
 cd helm
-helm upgrade --install -f values_override.yaml -n <NAMESPACE> <RELEASE-NAME> . :
+helm upgrade --install -f values_override.yaml -n <NAMESPACE> <RELEASE-NAME> .
 ```
 
 We recommend you use a release name like `<SOMETHING>-pgdump`. All the resources created by the helm chart will have this name: a PVC, a deployment and a cronjob.
