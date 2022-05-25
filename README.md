@@ -95,7 +95,7 @@ kubectl get cj
 
 ## Creating the Helm chart
 
-If you wish, you may use those yml files for many situations. But you will neeed to make small changes for every case: the namespace, the resources name, the environment values etc. One of the popular solutions for this problem, in Kubernetes world, is Helm - the 'Kubernetes package manager'. Other options are `kustomize` os using `sed` to do inline search-and-replaces.
+If you wish, you may use those yml files for many situations. But you will neeed to make small changes for every case: the namespace, the resources name, the environment values etc. One of the popular solutions for this problem, in Kubernetes world, is Helm - the 'Kubernetes package manager'. Other options are `kustomize` or using `sed` to do inline search-and-replaces.
 
 So we'll create a helm chart and use it to install with different values. Moving into `helm` directory, the file `Chart.yaml` is basically a description of the chart.
 
@@ -111,7 +111,7 @@ Most probably you will want to override at least the values for `pghost` and `se
 
 ```
 cd helm
-helm upgrade --install -f values.yaml -f values_override.yaml -n <NAMESPACE> <RELEASE-NAME> . 
+helm upgrade --install -f values_override.yaml -n <NAMESPACE> <RELEASE-NAME> . :
 ```
 
 We recommend you use a release name like `<SOMETHING>-pgdump`. All the resources created by the helm chart will have this name: a PVC, a deployment and a cronjob.

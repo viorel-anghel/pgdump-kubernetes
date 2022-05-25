@@ -34,6 +34,7 @@ do
     [ "$db" ] || continue
     [ "$db" = "datname" ] && continue
     [ "$db" = "template0" ] && continue
+    [ "$db" = "template1" ] && continue
 
     echo "$db" | egrep -q '^--' && continue
     echo "$db" | egrep -q '^\(' && continue
