@@ -9,12 +9,9 @@ https://github.com/viorel-anghel/pgdump-kubernetes.git
 
 If you wish, you may use those yml files for many situations. But you will neeed to make small changes for every case: the namespace, the resources name, the environment values etc. One of the popular solutions for this problem, in Kubernetes world, is Helm - the 'Kubernetes package manager'. Other options are `kustomize` os using `sed` to do inline search-and-replaces.
 
-See the second part here: `helm`.
+So we'll create a helm chart and use it to install with different values. In the `helm` directory, the file `Chart.yaml` is basically a description of the chart.
 
-
-So we'll create a helm chart and use it to install with different values. Moving into `helm` directory, the file `Chart.yaml` is basically a description of the chart.
-
-In the file `values.yaml` are the variables which can be changed at install and their default value. The namespace is not here, this and the release name will de defined at install time in the command line.
+The file `values.yaml` contains the variables which can be changed at install together with their default value. The namespace is not here, this and the release name will de defined at install time in the command line.
 
 Inside the directory `templates` you will find our three resources yml files, but slightly changed or shall I say parametrized. Everywhere you see `{{ Something }}` that is a placeholder which will be replaced during helm install. `{{ .Values.something }}` will be taken from the `values.yaml` file. Then, `{{ .Release.Name }}` and `{{ .Release.Namespace }}` are values which will be defined in the `helm install` command.
 
