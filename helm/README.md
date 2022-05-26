@@ -19,15 +19,31 @@ Inside the directory `templates` you will find our three resources yml files, bu
 
 ## Publishing the Helm chart
 
-TBD
+To use GitHub as a helm repository:
+```
+helm package .      # will produce the file pgdump-0.1.0.tgz with the chart files
+helm repo index .   # create or update the index.yaml for repo
+git add index.yaml pgdump-0.1.0.tgz
+git commit -m 'New chart version'
+git push
+```
+
+To  get chart repository URL, jsut get the raw URL for the file `index.yaml` created above ( https://raw.githubusercontent.com/viorel-anghel/pgdump-kubernetes/main/helm/index.yaml ), tben strip the filename. See below.
 
 ## Using the Helm chart
+
+To use the above published chart:
+
+```
+helm repo add pgdump 'https://raw.githubusercontent.com/viorel-anghel/pgdump-kubernetes/main/helm/'
+helm repo update
+helm search repo pgdump
+```
 
 Most probably you will want to override at least the values for `pghost` and `secret_pgpass` to match your postgresql installation. The simplest way is to copy `values.yaml` with another name, like `values_override.yaml` and edit the second file. Then use this to install the helm chart:
 
 ```
-cd helm
-helm upgrade --install -f values.yaml -f values_override.yaml -n <NAMESPACE> <RELEASE-NAME> . 
+helm upgrade --install -f values_override.yaml -n <NAMESPACE> <RELEASE-NAME> pgdump/pgdump
 ```
 
 We recommend you use a release name like `<SOMETHING>-pgdump`. All the resources created by the helm chart will have this name: a PVC, a deployment and a cronjob.
