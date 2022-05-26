@@ -1,0 +1,14 @@
+apiVersion: v1
+entries:
+  pgdump:
+  - apiVersion: v2
+    appVersion: "0.5"
+    created: "2022-05-26T13:45:24.219314+03:00"
+    description: A Helm chart for pgdump (postgresql dumps) in Kubernetes
+    digest: 7e7df18d6c49cd975beb01c11c53fea39f718a472cc4a63c499d0b9b9e876f9e
+    name: pgdump
+    type: application
+    urls:
+    - pgdump-0.1.0.tgz
+    version: 0.1.0
+generated: "2022-05-26T13:45:24.218491+03:00"
