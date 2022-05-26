@@ -81,13 +81,13 @@ kubectl -n pg-helm exec -ti mypg-pgdump -- bash
 
 The skeleton of the pod can now be used to create a deployment and a cronjob. Both are pretty simple once you have the pod tested and working. All the objects (pod, pvc, deployment, cronjob) will have the same name, in this case `mypg-pgdump`.
 
-For deployment, see the file `deployment.yml`. Starting from the second `spec:` is exactly the yaml from the pod.
+We would not really need the deployment but it makes me confortable to know that I can inspect the backups at any time by exec-ing into that pod. Also it is very easy to do a restore from it. For deployment declaration, see the file `deployment.yml`. Starting from the second `spec:` is exactly the yaml from the pod.
 
-Apparently we would not need a deployment as long as we use `replicas: 1` but the advantage of the deployment over pod is Kubernetes will 'keep the pod alive', even if nodes in cluster are restarted or deleted. Also is easier to do version upgrades.
+Apparently we would not need a deployment as long as we use `replicas: 1` but a pod. The advantage of the deployment over pod is Kubernetes will 'keep the pod alive', even if some nodes in the cluster are restarted or deleted. Also it's easier to do version upgrades.
 
 Kubernetes has a dedicated object for cronjobs and this is pretty similar with a Deployment. Look at the file `cronjob.yml` where in the `spec` section you will recognize most of it. Only the `schedule` and `restartPolicy` are new. 
 
-The schedule syntax is the same as the standard Unix cron daemon (no surprise here). You may change the `schedule:` line to see some results faster.
+The schedule syntax is the same as the standard Unix cron daemon (no surprise here). You may change the `schedule:` line to see some results faster (use '* * * * *' for every minute).
 
 ```
 kubectl apply -f cronjob.yml
