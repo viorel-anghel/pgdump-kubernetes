@@ -23,7 +23,7 @@ spec:
 
   containers:
   - name: pgdump
-  image: vvang/pgdump:0.5
+  image: vvang/pgdump:0.6
   volumeMounts:
     - name: data
       mountPath: /data
