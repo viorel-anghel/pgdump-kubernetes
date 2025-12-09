@@ -2,6 +2,7 @@ FROM ubuntu:24.04
 
 RUN apt update && apt upgrade -y
 RUN apt install postgresql-client -y 
+RUN apt-get clean; rm -rf /var/lib/apt/lists/*
 
 COPY pgdump.sh /pgdump.sh
 
