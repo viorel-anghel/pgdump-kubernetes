@@ -1,4 +1,4 @@
-# default values for helm. yaml formatted
+# example file for values_override 
 
 schedule: '10 * * * *'
 
@@ -15,5 +15,6 @@ secret_pgpass: postgres.acid-cango.credentials.postgresql.acid.zalan.do
 secret_key: password
 
 storage:
-  size: 1Gi
+  size: 2Gi
+  storageClassName: longhorn
 

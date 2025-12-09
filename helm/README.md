@@ -73,7 +73,6 @@ Yet another solution will be to force the cronjob pods to be created on the same
 ## Improvments TBD 
 
 - use volumemount when reading secret password in deployment to cope with the situation when postgres password changes (env variables are not re-read on the fly)
-- storageclass in helm chart
 - resource limits
 
 

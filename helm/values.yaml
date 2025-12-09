@@ -16,4 +16,5 @@ secret_key: postgres-password
 
 storage:
   size: 1Gi
+  storageClassName: ""
 
