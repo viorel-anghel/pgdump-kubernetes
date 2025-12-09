@@ -3,7 +3,17 @@ entries:
   pgdump:
   - apiVersion: v2
     appVersion: "0.6"
-    created: "2025-12-09T10:52:39.409322+02:00"
+    created: "2025-12-09T13:45:44.40345+02:00"
+    description: A Helm chart for pgdump (postgresql dumps) in Kubernetes
+    digest: 03a4628a9e4b9f84685a30e71ac8cec596d582f48fea58b5d4bc26b4b7664148
+    name: pgdump
+    type: application
+    urls:
+    - pgdump-0.2.1.tgz
+    version: 0.2.1
+  - apiVersion: v2
+    appVersion: "0.6"
+    created: "2025-12-09T13:45:44.402461+02:00"
     description: A Helm chart for pgdump (postgresql dumps) in Kubernetes
     digest: 287b17d268b5440a1cf3aaa7f5500fa1e50e52be29651e58284927966eae08d3
     name: pgdump
@@ -13,7 +23,7 @@ entries:
     version: 0.2.0
   - apiVersion: v2
     appVersion: "0.5"
-    created: "2025-12-09T10:52:39.409033+02:00"
+    created: "2025-12-09T13:45:44.401458+02:00"
     description: A Helm chart for pgdump (postgresql dumps) in Kubernetes
     digest: 7e7df18d6c49cd975beb01c11c53fea39f718a472cc4a63c499d0b9b9e876f9e
     name: pgdump
@@ -21,4 +31,4 @@ entries:
     urls:
     - pgdump-0.1.0.tgz
     version: 0.1.0
-generated: "2025-12-09T10:52:39.40794+02:00"
+generated: "2025-12-09T13:45:44.400876+02:00"
